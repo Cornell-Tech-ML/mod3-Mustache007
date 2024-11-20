@@ -287,17 +287,12 @@ def tensor_reduce(
     ) -> None:
         # TODO: Implement for Task 3.1.
         reduce_size = a_shape[reduce_dim]
-
         for i in prange(out.size):
-
             index = np.empty(MAX_DIMS, np.int32)
             to_index(i, out_shape, index)
-
             out_pos = index_to_position(index, out_strides)
-
             index[reduce_dim] = 0
             pos = index_to_position(index, a_strides)
-
             acc = a_storage[pos]
             for j in range(1, reduce_size):
                 index[reduce_dim] = j
