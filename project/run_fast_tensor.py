@@ -1,4 +1,5 @@
 import random
+import time
 
 import numba
 
@@ -67,6 +68,8 @@ class FastTrain:
         BATCH = 10
         losses = []
 
+        start_time = time.time()
+
         for epoch in range(max_epochs):
             total_loss = 0.0
             c = list(zip(data.X, data.y))
@@ -98,6 +101,9 @@ class FastTrain:
                 y2 = minitorch.tensor(data.y)
                 correct = int(((out.detach() > 0.5) == y2).sum()[0])
                 log_fn(epoch, total_loss, correct, losses)
+
+        end_time = time.time()
+        print(f"Time per epoch: {(end_time - start_time) / max_epochs} seconds")
 
 
 if __name__ == "__main__":
