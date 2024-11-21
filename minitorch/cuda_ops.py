@@ -421,25 +421,40 @@ def _mm_practice(out: Storage, a: Storage, b: Storage, size: int) -> None:
         size (int): size of the square
 
     """
+    # Define block dimension for shared memory allocation
     BLOCK_DIM = 32
     # TODO: Implement for Task 3.4.
+    # Allocate shared memory for matrix tiles
+    # Each block will work on BLOCK_DIM x BLOCK_DIM tiles of the input matrices
     matrix1_cache = cuda.shared.array((BLOCK_DIM, BLOCK_DIM), numba.float64)
     matrix2_cache = cuda.shared.array((BLOCK_DIM, BLOCK_DIM), numba.float64)
-
+    # Calculate global row and column indices for this thread
+    # blockIdx: which block this thread belongs to
+    # blockDim: number of threads per block
+    # threadIdx: position of thread within its block
     row = cuda.blockIdx.x * cuda.blockDim.x + cuda.threadIdx.x
     col = cuda.blockIdx.y * cuda.blockDim.y + cuda.threadIdx.y
+    # Get local thread indices within the block
+    # These are used to access shared memory
     thread_row = cuda.threadIdx.x
     thread_col = cuda.threadIdx.y
-
+    # Calculate linear index into global memory
+    # For matrices stored in row-major order
     index = row * size + col
+    # Only compute if within matrix bounds
     if row < size and col < size:
+        # Load data from global to shared memory
+        # Each thread loads one element of each matrix
         matrix1_cache[thread_row, thread_col] = a[index]
         matrix2_cache[thread_row, thread_col] = b[index]
+        # Ensure all threads have loaded their data before proceeding
         cuda.syncthreads()
-
+        # Compute dot product for this thread's output element
         result = 0
         for k in range(size):
+            # Multiply corresponding elements and accumulate
             result += matrix1_cache[thread_row, k] * matrix2_cache[k, thread_col]
+        # Write final result back to global memory
         out[index] = result
 
 
