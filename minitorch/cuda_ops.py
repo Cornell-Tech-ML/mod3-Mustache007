@@ -29,12 +29,12 @@ FakeCUDAKernel = Any
 Fn = TypeVar("Fn")
 
 
-def device_jit(fn: Fn, **kwargs) -> Fn:
+def device_jit(fn: Fn, **kwargs: Any) -> Fn:
     """Wrapper around numba cuda jit decorator that enables device compilation."""
     return _jit(device=True, **kwargs)(fn)  # type: ignore
 
 
-def jit(fn, **kwargs) -> FakeCUDAKernel:
+def jit(fn: Any, **kwargs: Any) -> FakeCUDAKernel:
     """Wrapper around numba cuda jit decorator."""
     return _jit(**kwargs)(fn)  # type: ignore
 
@@ -110,6 +110,19 @@ class CudaOps(TensorOps):
 
     @staticmethod
     def matrix_multiply(a: Tensor, b: Tensor) -> Tensor:
+        """CUDA version of matrix multiplication.
+        
+        Args:
+        ----
+            a (Tensor): Left tensor for multiplication
+            b (Tensor): Right tensor for multiplication
+            
+        Returns:
+        -------
+            Tensor: Result of matrix multiplication with shape [..., a.shape[-2], b.shape[-1]]
+            where ... represents broadcasted batch dimensions
+            
+        """
         # Make these always be a 3 dimensional multiply
         both_2d = 0
         if len(a.shape) == 2:
@@ -404,7 +417,7 @@ def _mm_practice(out: Storage, a: Storage, b: Storage, size: int) -> None:
 
     """
     BLOCK_DIM = 32
-    # TODO: Implement for Task 3.3.
+    # TODO: Implement for Task 3.4.
     matrix1_cache = cuda.shared.array((BLOCK_DIM, BLOCK_DIM), numba.float64)
     matrix2_cache = cuda.shared.array((BLOCK_DIM, BLOCK_DIM), numba.float64)
 
@@ -496,14 +509,55 @@ def _tensor_matrix_multiply(
     # The local position in the block.
     pi = cuda.threadIdx.x
     pj = cuda.threadIdx.y
-
-    # Code Plan:
-    # 1) Move across shared dimension by block dim.
-    #    a) Copy into shared memory for a matrix.
-    #    b) Copy into shared memory for b matrix
-    #    c) Compute the dot produce for position c[i, j]
     # TODO: Implement for Task 3.4.
-    raise NotImplementedError("Need to implement for Task 3.4")
+    # Initialize accumulator for dot product result
+    # Each thread maintains its own accumulator for its assigned output position
+    acc = 0.0
+
+    # Process the matrices in BLOCK_DIM x BLOCK_DIM tiles
+    # This loop moves across the shared dimension (columns of A, rows of B)
+    for block_start in range(0, a_shape[-1], BLOCK_DIM):
+        # Initialize shared memory blocks to zero
+        # Each thread zeros out its assigned position in both shared arrays
+        a_shared[pi, pj] = 0
+        b_shared[pi, pj] = 0
+        # Ensure all threads have completed initialization before proceeding
+        cuda.syncthreads()
+
+        # Load a tile from matrix A into shared memory
+        # Only threads within matrix bounds perform the load
+        # Calculate global index using batch stride and matrix strides
+        if i < a_shape[-2] and block_start + pj < a_shape[-1]:
+            a_idx = batch * a_batch_stride + i * a_strides[-2] + (block_start + pj) * a_strides[-1]
+            a_shared[pi, pj] = a_storage[a_idx]
+            
+        # Load a tile from matrix B into shared memory
+        # Only threads within matrix bounds perform the load
+        # Calculate global index using batch stride and matrix strides
+        if block_start + pi < b_shape[-2] and j < b_shape[-1]:
+            b_idx = batch * b_batch_stride + (block_start + pi) * b_strides[-2] + j * b_strides[-1]
+            b_shared[pi, pj] = b_storage[b_idx]
+        
+        # Ensure all threads have completed loading data before computation
+        cuda.syncthreads()
+
+        # Compute partial dot product for this tile
+        # Only threads that will produce valid output elements participate
+        if i < out_shape[-2] and j < out_shape[-1]:
+            # Multiply and accumulate across the current tile
+            # k iterates over the shared dimension within the current tile
+            for k in range(min(BLOCK_DIM, a_shape[-1] - block_start)):
+                acc += a_shared[pi, k] * b_shared[k, pj]
+        
+        # Ensure all threads complete computation before loading next tile
+        cuda.syncthreads()
+
+    # After processing all tiles, write final accumulated result to global memory
+    # Only threads within output matrix bounds write their result
+    if i < out_shape[-2] and j < out_shape[-1]:
+        # Calculate global output index using batch and matrix strides
+        out_idx = batch * out_strides[0] + i * out_strides[-2] + j * out_strides[-1]
+        out[out_idx] = acc
 
 
 tensor_matrix_multiply = jit(_tensor_matrix_multiply)
