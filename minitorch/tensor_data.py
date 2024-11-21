@@ -331,8 +331,8 @@ class TensorData:
 
         # TODO: Implement for Task 2.1
         return TensorData(
-            self._storage, 
-            tuple([self.shape[o] for o in order]), 
+            self._storage,
+            tuple([self.shape[o] for o in order]),
             tuple([self._strides[o] for o in order]),
         )
 

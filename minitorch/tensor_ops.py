@@ -325,9 +325,10 @@ def tensor_zip(fn: Callable[[float, float], float]) -> Any:
             j = index_to_position(a_index, a_strides)
             broadcast_index(out_index, out_shape, b_shape, b_index)
             k = index_to_position(b_index, b_strides)
-            out[o] = fn(a_storage[j], b_storage[k])        
+            out[o] = fn(a_storage[j], b_storage[k])
 
     return _zip
+
 
 def tensor_reduce(fn: Callable[[float, float], float]) -> Any:
     """Low-level implementation of tensor reduction operation.
@@ -336,12 +337,12 @@ def tensor_reduce(fn: Callable[[float, float], float]) -> Any:
     repeatedly along a specified dimension of a tensor. The output shape will be
     the same as the input shape except the reduced dimension will have size 1.
 
-    For example, if we reduce dimension 1 of shape (2,3,4), the output shape 
+    For example, if we reduce dimension 1 of shape (2,3,4), the output shape
     will be (2,1,4).
 
     Args:
     ----
-        fn: Binary function (float, float) -> float that will be applied 
+        fn: Binary function (float, float) -> float that will be applied
             repeatedly to reduce values along the specified dimension
 
     Returns:
@@ -370,7 +371,6 @@ def tensor_reduce(fn: Callable[[float, float], float]) -> Any:
                 out_index[reduce_dim] = s
                 j = index_to_position(out_index, a_strides)
                 out[o] = fn(out[o], a_storage[j])
-
 
     return _reduce
 

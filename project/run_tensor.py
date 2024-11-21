@@ -32,13 +32,13 @@ class Linear(minitorch.Module):
         self.output_size = out_size
 
     def forward(self, x):
-        
+
         batch, in_size = x.shape
         rerurn (
             self.weights.value.view(1, in_size, self.output_size)
             * x.view(batch, in_size, 1)
         ).sum(1).view(batch, self.output_size) + self.bias.value.view(1, self.output_size)
-        
+
 
 def default_log_fn(epoch, total_loss, correct, losses):
     print("Epoch ", epoch, " loss ", total_loss, "correct", correct)

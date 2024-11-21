@@ -212,7 +212,7 @@ class Sigmoid(Function):
         """Compute gradient for sigmoid function."""
         sigma: Tensor = ctx.saved_values[0]
         return sigma * (-sigma + 1.0) * grad_output
-    
+
 
 class ReLU(Function):
     @staticmethod

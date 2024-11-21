@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from typing import Callable, Optional
 
     from .tensor import Tensor
-    from .tensor_data import Shape, Storage, Strides # Index is not used so deleted
+    from .tensor_data import Shape, Storage, Strides  # Index is not used so deleted
 
 # TIP: Use `NUMBA_DISABLE_JIT=1 pytest tests/ -m task3_1` to run these tests without JIT.
 
@@ -171,8 +171,9 @@ def tensor_map(
     ) -> None:
         # TODO: Implement for Task 3.1.
         # Check if input and output tensors have same shape and strides for fast path
-        if (np.array_equal(out_strides, in_strides) 
-            and np.array_equal(out_shape, in_shape)):
+        if np.array_equal(out_strides, in_strides) and np.array_equal(
+            out_shape, in_shape
+        ):
             # Fast path - directly map elements
             for idx in prange(out.size):
                 out[idx] = fn(in_storage[idx])
@@ -180,7 +181,7 @@ def tensor_map(
             # Slow path - handle broadcasting
             for elem_idx in prange(out.size):
                 output_coords = np.empty(MAX_DIMS, np.int32)
-                input_coords = np.empty(MAX_DIMS, np.int32) 
+                input_coords = np.empty(MAX_DIMS, np.int32)
 
                 to_index(elem_idx, out_shape, output_coords)
 
@@ -254,6 +255,7 @@ def tensor_zip(
                 )
 
     return njit(_zip, parallel=True)  # type: ignore
+
 
 def tensor_reduce(
     fn: Callable[[float, float], float],
@@ -366,7 +368,11 @@ def _tensor_matrix_multiply(
         for row in prange(out_shape[-2]):
             for col in prange(out_shape[-1]):
                 # Calculate linear index for out tensor
-                out_idx = batch * batch_stride_out + row * row_stride_out + col * col_stride_out
+                out_idx = (
+                    batch * batch_stride_out
+                    + row * row_stride_out
+                    + col * col_stride_out
+                )
 
                 # Initialize starting indices for a and b tensors
                 a_idx = batch * a_batch_stride + row * row_stride_a
