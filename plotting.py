@@ -1,4 +1,3 @@
-
 import minitorch
 import time
 import numpy as np
