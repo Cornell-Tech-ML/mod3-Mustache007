@@ -365,8 +365,8 @@ def _tensor_matrix_multiply(
 
     # Perform the matrix multiplication
     for batch in prange(out_shape[0]):
-        for row in prange(out_shape[-2]):
-            for col in prange(out_shape[-1]):
+        for row in range(out_shape[1]):
+            for col in range(out_shape[2]):
                 # Calculate linear index for out tensor
                 out_idx = (
                     batch * batch_stride_out
